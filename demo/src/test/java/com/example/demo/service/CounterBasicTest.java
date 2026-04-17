@@ -4,6 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -16,6 +18,28 @@ public class CounterBasicTest {
         counterBasic = new CounterBasic();
     }
 
+
+    @Test
+    void shouldDemonstrateRaceCondition() throws InterruptedException {
+        int threads = 1000;
+        int repeats = 100;
+
+        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+            for (int i = 0; i < threads; i++) {
+                executor.submit(() -> {
+                    for (int j = 0; j < repeats; j++) {
+                        counterBasic.acceptText("hello");
+                    }
+                });
+            }
+        }
+
+        assertThat(counterBasic.getCount("hello"))
+                .isLessThanOrEqualTo(threads * repeats);
+
+        System.out.println("Wynik: " + counterBasic.getCount("hello") +
+                " oczekiwano: " + (threads * repeats));
+    }
 
     // splitIntoWords
     @Test
